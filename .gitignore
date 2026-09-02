@@ -1,0 +1,14 @@
+# Dataset (too large for git, provided separately by the course)
+logbook_assignment1.csv
+*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
