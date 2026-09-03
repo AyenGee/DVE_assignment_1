@@ -1,19 +1,6 @@
 {
  "cells": [
   {
-   "cell_type": "markdown",
-   "id": "ab1dd59c",
-   "metadata": {},
-   "source": [
-    "# COMS4060A/7056A Assignment 1 -- Fuel Logbook Data Cleaning and Exploration\n",
-    "\n",
-    "**Name(s) / Student number(s):** _[fill in]_\n",
-    "\n",
-    "Dataset: `logbook_assignment1.csv` -- fuel fill-up logs scraped from a logbook service. Each markdown\n",
-    "heading below references the corresponding question number from the assignment brief.\n"
-   ]
-  },
-  {
    "cell_type": "code",
    "execution_count": 6,
    "id": "8e61c613",
@@ -242,23 +229,6 @@
   },
   {
    "cell_type": "markdown",
-   "id": "0d3f2970",
-   "metadata": {},
-   "source": [
-    "## Q1.1.5: Distribution of fueling dates\n",
-    "\n",
-    "The histogram and monthly time series both show steady, roughly organic growth in logged fill-ups\n",
-    "from 2005 to 2019, a small dip around 2020 (plausibly tied to COVID-19 lockdowns reducing\n",
-    "driving), then a sharp ramp-up through 2021 peaking in early/mid-2022, followed by an abrupt drop\n",
-    "to zero. This sudden cliff (rather than a gradual decline) suggests the dataset was\n",
-    "scraped/exported around mid-2022 and simply contains no records after that date -- the collection\n",
-    "window ended there, rather than the service losing all its users overnight. This means the data\n",
-    "disproportionately represents 2021-2022 behaviour, which is worth keeping in mind for later\n",
-    "analyses (e.g. Section 4's outlier removal and country comparisons are dominated by this period).\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
    "id": "424148f3",
    "metadata": {},
    "source": [
@@ -331,21 +301,6 @@
    ]
   },
   {
-   "cell_type": "markdown",
-   "id": "8c3f09ac",
-   "metadata": {},
-   "source": [
-    "## Q1.2.3: Convert gallons/miles/odometer/mpg to float\n",
-    "\n",
-    "Converted all four columns from string to float by stripping thousands-separator commas and\n",
-    "surrounding whitespace, then parsing with `pd.to_numeric(..., errors=\"coerce\")`. All four columns\n",
-    "now show dtype `float64` (confirmed above), enabling both arithmetic (needed for Q1.2.2) and\n",
-    "correct numeric plotting/statistics in later questions. This is completed before Q1.2.2 in the\n",
-    "notebook despite being numbered after it in the brief, since the interdependent fill requires\n",
-    "numeric values to compute -- the brief itself notes the order need not be linear.\n"
-   ]
-  },
-  {
    "cell_type": "code",
    "execution_count": 15,
    "id": "df3189e0",
@@ -383,23 +338,6 @@
     "\n",
     "for col in [\"gallons\", \"miles\", \"odometer\", \"mpg\"]:\n",
     "    print(f\"{col}: {df[col].isna().mean()*100:.2f}% missing after fill\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "31534c61",
-   "metadata": {},
-   "source": [
-    "## Q1.2.2: Fill miles/gallons/mpg from each other\n",
-    "\n",
-    "Used mpg = miles / gallons to fill each column from the other two wherever exactly one was\n",
-    "missing. Filled 953,695 missing `miles` values (using mpg x gallons), but 0 missing `gallons` and\n",
-    "0 missing `mpg` values -- meaning whenever `gallons` or `mpg` was missing, the other value needed\n",
-    "to derive it was also missing. After filling, `miles` missingness dropped from 87.58% to 6.32%,\n",
-    "now matching `gallons` and `mpg` exactly. This stable ~6.32% of rows missing all three fuel\n",
-    "fields together is most likely maintenance/service log entries (e.g. the very first row in the\n",
-    "dataset, a list of parts serviced with no fuel data at all) rather than genuine data-entry\n",
-    "failures -- these rows simply never had fuel information to begin with.\n"
    ]
   },
   {
@@ -456,32 +394,6 @@
    ]
   },
   {
-   "cell_type": "markdown",
-   "id": "69180878",
-   "metadata": {},
-   "source": [
-    "## Q1.2.4: Distributions of gallons, miles, odometer, mpg\n",
-    "\n",
-    "The raw histograms (before clipping) are each dominated by a single spike near zero, because a\n",
-    "small number of extreme values (odometer readings up to ~2.5x10^8, mpg up to ~1200, gallons up to\n",
-    "~28,000) stretch the axis so far that all realistic values become invisible -- direct visual\n",
-    "evidence that outlier removal (Section 4) is necessary.\n",
-    "\n",
-    "Clipping to the 0.5th-99.5th percentile reveals believable shapes: gallons and mpg are\n",
-    "right-skewed and roughly bell-shaped (gallons peaking ~10-15, mpg peaking ~20-25, both realistic),\n",
-    "miles is right-skewed peaking around 250-300, and odometer decays roughly monotonically from a\n",
-    "peak near 0. Both miles and mpg show a large additional spike at exactly 0. Since a car cannot\n",
-    "genuinely achieve 0 mpg while logging a fuel purchase, `mpg == 0` is almost certainly a\n",
-    "placeholder/bad-entry value rather than a real reading -- and because Q1.2.2's fill computed\n",
-    "`miles = mpg x gallons`, any row with a bad `mpg == 0` and missing `miles` had a fake `miles == 0`\n",
-    "propagated into it too. This is a limitation of the simple interdependent fill worth flagging\n",
-    "here and revisiting during Section 4's outlier removal (which should also catch `mpg == 0` rows).\n",
-    "\n",
-    "(Note: the bars right at the edge of each clipped plot are a plotting artifact -- every value\n",
-    "above the 99.5th percentile is stacked at that boundary by `.clip()`, not a real cluster of data.)\n"
-   ]
-  },
-  {
    "cell_type": "code",
    "execution_count": 18,
    "id": "dfe6185a",
@@ -525,36 +437,7 @@
    "id": "bd6eb335",
    "metadata": {},
    "source": [
-    "## Q1.2.5: Statistical description\n",
-    "\n",
-    "| | gallons | miles | odometer | mpg |\n",
-    "|---|---|---|---|---|\n",
-    "| count | 1,099,516 | 1,099,516 | 1,024,973 | 1,099,516 |\n",
-    "| mean | 12.80 | 269.45 | 103,996.10 | 22.16 |\n",
-    "| std | 74.50 | 725.96 | 340,643.30 | 15.75 |\n",
-    "| min | 0.00 | 0.00 | 0.00 | 0.00 |\n",
-    "| 25% | 8.99 | 181.38 | 45,921.00 | 15.60 |\n",
-    "| 50% | 11.95 | 267.05 | 91,882.00 | 21.80 |\n",
-    "| 75% | 14.94 | 342.76 | 146,912.00 | 28.60 |\n",
-    "| max | 28,380.00 | 195,321.20 | 254,362,100.00 | 1,214.30 |\n",
-    "\n",
-    "Most frequent (mode): gallons = 10.567, miles = 0.000, odometer = 1.000, mpg = 0.000\n",
-    "\n",
-    "**Do these results make sense? No, not fully.** Comparing `std` to the IQR (75%-25%) for each\n",
-    "column shows means/stds being dragged far from what the median/quartiles suggest is typical:\n",
-    "gallons' IQR is only ~6 but std is 74.5 (max 28,380 gallons in one fill -- impossible); miles' IQR\n",
-    "is ~161 but std is 726 (max 195,212 miles on one tank -- impossible); odometer's std (340,643) is\n",
-    "actually *larger than its own mean* (103,996), driven by a max of ~254 million (about 10,000x\n",
-    "around the Earth -- impossible); mpg's max of 1,214 is also physically impossible for any\n",
-    "consumer vehicle. A small number of extreme, impossible values are inflating the mean/std of\n",
-    "every column, while the median/quartiles remain much more representative of typical values.\n",
-    "\n",
-    "The modes reinforce this: `mpg` mode of 0 and `odometer` mode of 1 are not plausible common real\n",
-    "readings -- they read as placeholder/default values rather than genuine measurements (consistent\n",
-    "with the Q1.2.4 finding). `gallons` mode of 10.567 is an oddly specific repeated value, possibly\n",
-    "tied to how this dataset was generated/scraped rather than a natural clustering. All of this\n",
-    "reinforces why Section 4's per-currency outlier removal is necessary before trusting any\n",
-    "downstream analysis.\n"
+    "DESCRIPTION OF STATISTICAL VALUES.....\n"
    ]
   },
   {
@@ -607,32 +490,6 @@
     "df[\"currency\"] = df[\"currency\"].fillna(df[\"cost_per_gallon\"].str.extract(r\"^(\\D+)\")[0].str.strip())\n",
     "\n",
     "print(df[\"currency\"].value_counts(dropna=False).head(20))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "352afa9c",
-   "metadata": {},
-   "source": [
-    "## Q2.1: Currency column\n",
-    "\n",
-    "Extracted the currency symbol/code as the leading non-digit characters of `total_spent`\n",
-    "(falling back to `cost_per_gallon` when `total_spent` is missing), via the regex `^(\\D+)`. This\n",
-    "correctly handles the Swiss Franc note in the brief: since `.` is itself a non-digit character,\n",
-    "a value like `\"CHF.5.99\"` is captured in full as `\"CHF.\"` rather than the period being mistaken\n",
-    "for a decimal point.\n",
-    "\n",
-    "Top currencies by row count: `$` (741,655), `£` (87,554), `NaN` (74,157), `€` (59,254),\n",
-    "`CA$` (46,799), `R` (36,382), `AU$` (23,234), `RM` (8,627), `NZ$` (7,702), `R$` (6,369), `zł`\n",
-    "(5,302), and a long tail of smaller currencies.\n",
-    "\n",
-    "`NaN` (74,157 rows) corresponds to rows where both `total_spent` and `cost_per_gallon` are\n",
-    "missing -- consistent with the maintenance/service log entries identified in Q1.2.2, which never\n",
-    "had monetary fuel data to begin with.\n",
-    "\n",
-    "Plain `$` heavily dominates the dataset and is ambiguous -- it could be USD, or (per the brief's\n",
-    "own hint) a misconfigured user, e.g. an SA user whose currency defaulted to `$` instead of `R`.\n",
-    "This ambiguity is exactly what Section 4's outlier removal is designed to help catch.\n"
    ]
   },
   {
@@ -771,22 +628,6 @@
     "df[\"cost_per_gallon_value\"] = extract_amount(df[\"cost_per_gallon\"])\n",
     "\n",
     "df[[\"total_spent\", \"total_spent_value\", \"cost_per_gallon\", \"cost_per_gallon_value\"]].sample(10, random_state=1)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "1447f0ec",
-   "metadata": {},
-   "source": [
-    "## Q2.2: Numeric total_spent / cost_per_gallon\n",
-    "\n",
-    "Extracted the numeric amount from `total_spent` and `cost_per_gallon` by stripping the leading\n",
-    "currency symbol/code (`^\\D+`) and thousands-commas, then converting with\n",
-    "`pd.to_numeric(..., errors=\"coerce\")` -- the same Swiss-Franc-safe approach as Q2.1, since the\n",
-    "currency prefix (including a trailing `.` for CHF) is removed before parsing the remaining\n",
-    "digits. Spot-checking a sample confirmed the new `total_spent_value`/`cost_per_gallon_value`\n",
-    "columns match the original string values correctly (e.g. `\"$67.86\"` -> `67.86`), and both new\n",
-    "columns are `float64`.\n"
    ]
   },
   {
@@ -1240,32 +1081,6 @@
   },
   {
    "cell_type": "markdown",
-   "id": "48b01e97",
-   "metadata": {},
-   "source": [
-    "## Q3.3: Distribution of vehicle age per country (results)\n",
-    "\n",
-    "| currency | median age | mean age | std | count |\n",
-    "|---|---|---|---|---|\n",
-    "| RM  | 7  | 7.78  | 6.20 | 8,613   |\n",
-    "| R   | 8  | 9.03  | 6.15 | 36,175  |\n",
-    "| £   | 8  | 9.10  | 6.39 | 86,899  |\n",
-    "| CA$ | 9  | 10.51 | 7.71 | 46,317  |\n",
-    "| $   | 10 | 11.06 | 7.87 | 730,153 |\n",
-    "| AU$ | 10 | 10.91 | 7.42 | 23,044  |\n",
-    "| €   | 10 | 10.99 | 6.71 | 58,643  |\n",
-    "| NZ$ | 14 | 14.49 | 7.30 | 7,630   |\n",
-    "\n",
-    "Vehicle age varies meaningfully by country: Malaysia (RM) has the youngest fleet (median 7\n",
-    "years), South Africa (R) and the UK (£) are close behind (median 8), while $/AU$/€\n",
-    "cluster around a median of 10 years. New Zealand (NZ$) stands out with a noticeably older fleet --\n",
-    "a median of 14 years, several years above every other country. This could reflect New Zealand's\n",
-    "well-documented reliance on used/imported vehicles (the Japanese used-import market) rather than\n",
-    "new car sales, unlike markets with a stronger new-car culture.\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
    "id": "81fd3d25",
    "metadata": {},
    "source": [
@@ -1324,30 +1139,6 @@
     "plt.xlabel(\"number of unique users\")\n",
     "plt.title(\"Most popular make/model combinations\")\n",
     "plt.show()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "bfb3e9e8",
-   "metadata": {},
-   "source": [
-    "## Q3.4: Most popular vehicle makes and models (results)\n",
-    "\n",
-    "Top makes (by unique owners): Ford (14,398), Toyota (13,455), BMW (11,062), Nissan (8,845),\n",
-    "Volkswagen (7,680), Mercedes-Benz (6,638), Honda (6,163), Audi (5,762), Hyundai (4,984), Mazda\n",
-    "(4,665).\n",
-    "\n",
-    "Top specific models: Ford Mustang (815), Ford F-150 (781), Toyota Land Cruiser (751), Honda Civic\n",
-    "(743), Toyota Corolla (737), Toyota 4Runner (733), Ford Ranger (715), Toyota Camry (703), Honda\n",
-    "Accord (702), VW Jetta (679).\n",
-    "\n",
-    "Ford and Toyota dominate makes, consistent with their status as two of the best-selling brands\n",
-    "globally. Interestingly, the single most logged *model* is the Ford Mustang -- a sports car, not\n",
-    "a typical daily-driver -- which likely reflects a mild enthusiast-community skew in who bothers to\n",
-    "keep a detailed fuel logbook (owners of a fun/performance car may be more engaged with tracking\n",
-    "than owners of a purely utilitarian commuter car), rather than the Mustang being the most-owned\n",
-    "car in the general population. The rest of the top models (F-150, Land Cruiser, Civic, Corolla,\n",
-    "Ranger, Camry, Accord) are a believable mix of trucks/SUVs and high-volume sedans.\n"
    ]
   },
   {
@@ -1581,30 +1372,6 @@
   },
   {
    "cell_type": "markdown",
-   "id": "df7c074e",
-   "metadata": {},
-   "source": [
-    "## Q4.2.1: Cost per litre per country, January 2022 (results)\n",
-    "\n",
-    "| currency | mean (ZAR) | median (ZAR) | count |\n",
-    "|---|---|---|---|\n",
-    "| $  | 14.26 | 13.56 | 30793 |\n",
-    "| CA$| 17.96 | 17.52 | 1491  |\n",
-    "| R  | 18.89 | 19.00 | 687   |\n",
-    "| €  | 27.74 | 28.35 | 892   |\n",
-    "| £  | 30.66 | 30.58 | 891   |\n",
-    "\n",
-    "Clear ordering: US ($) cheapest, UK (£) and Eurozone (€) most expensive, Canada and\n",
-    "South Africa in between. This matches real-world fuel taxation policy -- the US has comparatively\n",
-    "very low fuel tax, while the UK and EU levy high fuel duty and VAT. South Africa's mean (R18.89)\n",
-    "is close to documented real pump prices for the period (~R19-20/litre), a good sanity check that\n",
-    "the cleaning and currency-conversion pipeline is producing believable results. Note the $ sample\n",
-    "(30,793) is far larger than the others (687-1,491), so its estimate is more statistically\n",
-    "reliable than the smaller-sample currencies.\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
    "id": "54be78ce",
    "metadata": {},
    "source": [
@@ -1810,29 +1577,6 @@
   },
   {
    "cell_type": "markdown",
-   "id": "627261c5",
-   "metadata": {},
-   "source": [
-    "## Q4.2.2: Detecting missed fill-up logs (results)\n",
-    "\n",
-    "Of 534,444 comparable consecutive fill-up pairs (same user, valid previous odometer reading, a\n",
-    "plausible 0-5000 mile jump), 316,596 (59.24%) were flagged as likely missed fill-ups under the\n",
-    "rule odometer_diff > 1.5 x miles -- around 42.87% of the entire cleaned dataset.\n",
-    "\n",
-    "This is a strikingly high proportion, and it's worth being critical of it rather than taking it\n",
-    "at face value: while it's plausible that users frequently skip logging some fill-ups (consistent\n",
-    "with how inconsistently this dataset has behaved throughout -- missing fields, service-only\n",
-    "entries, etc.), 59% is high enough that the rule is almost certainly also catching cases where its\n",
-    "underlying assumption breaks down. As found during development (a user profile whose odometer\n",
-    "*decreased* between two logged dates, most likely from a vehicle change rather than a data error),\n",
-    "this simple rule cannot distinguish \"one continuous vehicle with a missed fill-up\" from \"a broken\n",
-    "continuity assumption.\" A stricter threshold (e.g. 2x or 3x instead of 1.5x) would likely reduce\n",
-    "this to a more conservative, higher-confidence estimate, at the cost of missing smaller genuine\n",
-    "gaps -- a reasonable extension beyond what the brief asks for a \"basic rule.\"\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
    "id": "460bffe3",
    "metadata": {},
    "source": [
@@ -1885,37 +1629,6 @@
     "plt.title(\"Average distance per tank by country\")\n",
     "plt.tight_layout()\n",
     "plt.show()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "dd90a0ae",
-   "metadata": {},
-   "source": [
-    "## Q4.2.3: Average distance per tank per country (results)\n",
-    "\n",
-    "| currency | avg km per tank |\n",
-    "|---|---|\n",
-    "| € (Eurozone) | 610.44 |\n",
-    "| £ (UK)        | 588.74 |\n",
-    "| R (South Africa)   | 534.48 |\n",
-    "| $ (US)            | 461.60 |\n",
-    "| CA$ (Canada)       | 442.68 |\n",
-    "\n",
-    "The Eurozone shows the largest average distance per tank (610km), followed closely by the UK\n",
-    "(589km). This actually **contradicts** the naive hypothesis floated earlier (that cheaper fuel\n",
-    "correlates with bigger vehicles/tanks and therefore longer range) -- recall from Q4.2.1 that\n",
-    "€ and £ have by far the *most expensive* fuel of the five, yet their vehicles cover the\n",
-    "*most* distance per tank, while the cheapest-fuel countries ($, CA$) show the *shortest* range.\n",
-    "\n",
-    "A more consistent explanation: Europe's historically high fuel prices have pushed strong adoption\n",
-    "of diesel engines and smaller, more fuel-efficient cars (lower litres/100km, as seen in Q4.2.8's\n",
-    "correlation and Q4.2.6's efficiency leaders), and diesel engines in particular are well known for\n",
-    "long real-world range per tank. So a smaller/efficient engine with a fairly ordinary tank size can\n",
-    "still travel further before running dry than a less efficient engine with a nominally larger tank\n",
-    "-- efficiency, not fuel price or tank size alone, appears to be the dominant factor here. South\n",
-    "Africa sits in the middle (534km), plausibly reflecting its bakkie/SUV-heavy popular fleet\n",
-    "(Q4.2.5) suited to long rural/farm distances, despite only moderately-priced fuel.\n"
    ]
   },
   {
@@ -1973,29 +1686,6 @@
     "plt.show()\n",
     "\n",
     "print(\"Correlation (vehicle_age vs km_driven):\", age_dist[\"vehicle_age\"].corr(age_dist[\"km_driven\"]))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "fba0b732",
-   "metadata": {},
-   "source": [
-    "## Q4.2.4: Do newer vehicles drive further between fill-ups? (results)\n",
-    "\n",
-    "Correlation (vehicle_age vs km_driven): **-0.159** -- a weak negative relationship. Mean distance\n",
-    "per tank is fairly flat for younger vehicles (~515km at age 0, ~500km at age 9-10) and only\n",
-    "declines noticeably for much older vehicles (~350-390km beyond age 30).\n",
-    "\n",
-    "So the answer is a qualified **yes, but weakly**: there is a genuine downward trend, but it's\n",
-    "concentrated at the older end of the age range rather than a steady decline across all ages -- a\n",
-    "5-year-old car and a 10-year-old car cover roughly similar distances per tank, but a 35-year-old\n",
-    "car covers meaningfully less. This is more consistent with a \"very old vehicles\" effect (smaller\n",
-    "tanks in older vehicle designs, more short-trip/collector-car usage patterns, worse real-world\n",
-    "fuel economy from wear) than a smooth \"every year newer adds range\" story. It's also worth\n",
-    "flagging the same confound noted in Q4.2.3: newer vehicles aren't evenly distributed across\n",
-    "countries, so part of this relationship could reflect which countries have longer average trips\n",
-    "(Q4.2.3) combined with which countries' fleets skew newer/older (Q3.3), rather than a pure\n",
-    "age-causes-range effect.\n"
    ]
   },
   {
@@ -2141,31 +1831,6 @@
     "for cur, res in results.items():\n",
     "    print(f\"\\n{cur}:\")\n",
     "    print(res)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "10266640",
-   "metadata": {},
-   "source": [
-    "## Q4.2.6: Most fuel-efficient vehicle per country (results)\n",
-    "\n",
-    "| currency | vehicle | mean L/100km | count |\n",
-    "|---|---|---|---|\n",
-    "| $   | Toyota Prius Prime (PHEV)          | 3.31 | 691 |\n",
-    "| CA$ | Toyota Prius Prime (PHEV)          | 3.33 | 66  |\n",
-    "| £   | Mitsubishi Outlander (PHEV)        | 3.37 | 30  |\n",
-    "| €   | Opel Ampera (PHEV)                 | 3.99 | 27  |\n",
-    "| R   | Renault Kwid (petrol, non-hybrid)  | 5.23 | 21  |\n",
-    "\n",
-    "Four of five results are plug-in hybrids, which legitimately achieve very low fuel-only\n",
-    "consumption since part of their distance runs on grid electricity rather than petrol -- this is a\n",
-    "real methodological nuance, not a data error: the comparison isn't purely \"engine efficiency,\"\n",
-    "it's \"litres of fuel used per 100km,\" which structurally favours PHEVs. South Africa's result\n",
-    "(Renault Kwid, a small non-hybrid petrol city car) is the one directly comparable conventional\n",
-    "figure, and it closely matches real-world quoted Kwid efficiency (~4.5-5.5 L/100km). Note\n",
-    "£/€/R sample sizes (21-30) sit close to the `min_transactions=20` threshold, so these\n",
-    "three estimates carry more uncertainty than the $/CA$ results (n=66-691).\n"
    ]
   },
   {
@@ -2542,7 +2207,6 @@
    "source": [
     "## Q4.3.1 & Q4.3.2: Filtering to SA drivers, and fuel price over time\n",
     "\n",
-    "Filtered df_clean to currency == \"R\" (South African drivers), giving sa_df with 27,072 rows.\n",
     "\n",
     "The monthly average cost_per_litre for SA closely tracks real, documented South African fuel\n",
     "price history: a dip around 2008-09 (global financial crisis), a rise through 2009-2014, a sharp\n",
@@ -2550,7 +2214,7 @@
     "around 2020 (COVID-19 oil price crash), and a steep climb through 2021-2022 to record highs\n",
     "(post-COVID recovery and 2022 energy crisis). Reproducing these known real-world events gives\n",
     "strong confidence that the currency extraction and cost conversion pipeline (Sections 2 and 4.1)\n",
-    "is producing accurate, trustworthy values.\n"
+    "is producing accurate, trustworthy values."
    ]
   },
   {
@@ -2708,12 +2372,7 @@
     "\n",
     "Derived a monthly price-direction label (\"up\"/\"down\") from month-over-month change in average\n",
     "cost_per_litre (validated against real SA fuel price history in Q4.3.2), then mapped it onto\n",
-    "each first-Tuesday/first-Wednesday row.\n",
-    "\n",
-    "Result: 1,592 rows (71.1%) fell in an \"up\" month and 648 rows (28.9%) fell in a \"down\" month --\n",
-    "this SA fuel price series had noticeably more monthly price increases than decreases across\n",
-    "2005-2022, consistent with the long-term rising trend seen in Q4.3.2, punctuated by occasional\n",
-    "sharp drops (2008-09, 2014-16, 2020).\n"
+    "each first-Tuesday/first-Wednesday row. "
    ]
   },
   {
